@@ -40,7 +40,7 @@ jobs:
           prerelease: false
           files: |
             bin/aws-login.sh
-            bin/eks-allow.sh
+            bin/eks-allowip.sh
 
       - name: Calculate SHA256
         id: sha256

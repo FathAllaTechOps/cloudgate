@@ -7,7 +7,7 @@ Two CLI tools for AWS authentication and EKS cluster IP whitelisting.
 | Tool | Purpose |
 | --- | --- |
 | `aws-login` | Authenticate to AWS accounts via SAML (saml2aws) and update kubeconfigs |
-| `eks-allow` | Whitelist your current external IP on EKS cluster `publicAccessCidrs` |
+| `eks-allowip` | Whitelist your current external IP on EKS cluster `publicAccessCidrs` |
 
 ---
 
@@ -34,8 +34,8 @@ brew install aws-eks-login
 ```bash
 curl -sSL https://github.com/FathAllaTechOps/aws-eks-login/archive/refs/heads/main.tar.gz | tar -xz
 sudo cp aws-eks-login-main/bin/aws-login.sh /usr/local/bin/aws-login
-sudo cp aws-eks-login-main/bin/eks-allow.sh /usr/local/bin/eks-allow
-sudo chmod +x /usr/local/bin/aws-login /usr/local/bin/eks-allow
+sudo cp aws-eks-login-main/bin/eks-allowip.sh /usr/local/bin/eks-allowip
+sudo chmod +x /usr/local/bin/aws-login /usr/local/bin/eks-allowip
 ```
 
 ---
@@ -54,8 +54,8 @@ brew update && brew upgrade aws-eks-login
 VERSION="v1.0.0"   # replace with the latest version
 curl -sSL "https://github.com/FathAllaTechOps/aws-eks-login/archive/${VERSION}.tar.gz" | tar -xz
 sudo cp "aws-eks-login-${VERSION#v}/bin/aws-login.sh" /usr/local/bin/aws-login
-sudo cp "aws-eks-login-${VERSION#v}/bin/eks-allow.sh" /usr/local/bin/eks-allow
-sudo chmod +x /usr/local/bin/aws-login /usr/local/bin/eks-allow
+sudo cp "aws-eks-login-${VERSION#v}/bin/eks-allowip.sh" /usr/local/bin/eks-allowip
+sudo chmod +x /usr/local/bin/aws-login /usr/local/bin/eks-allowip
 ```
 
 ---
@@ -80,7 +80,7 @@ You will be prompted for your SSO email and password. The script will:
 
 1. Authenticate each selected profile via `saml2aws`
 2. Update `~/.kube/config` for all EKS clusters across `eu-west-1` and `eu-central-1`
-3. Optionally run `eks-allow` to whitelist your IP on production clusters
+3. Optionally run `eks-allowip` to whitelist your IP on production clusters
 
 **Options:**
 
@@ -92,14 +92,14 @@ aws-login --version  Show version
 
 ---
 
-### `eks-allow` — EKS IP Whitelisting
+### `eks-allowip` — EKS IP Whitelisting
 
 Adds your current external IP as a `/32` CIDR to EKS cluster `publicAccessCidrs`.
 
 Supports both **AWS SSO** profiles (`~/.aws/config`) and **static credential** profiles (`~/.aws/credentials`).
 
 ```bash
-eks-allow
+eks-allowip
 ```
 
 You will be prompted to select:
@@ -111,7 +111,7 @@ You will be prompted to select:
 If your SSO session is expired, the script automatically triggers `aws sso login` before proceeding.
 
 ```text
-eks-allow --help     Show help
+eks-allowip --help     Show help
 ```
 
 > **Note:** IP whitelisting is only needed for **production accounts**. Lower environments are open to `0.0.0.0/0` by default.

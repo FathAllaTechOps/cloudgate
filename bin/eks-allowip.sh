@@ -1,7 +1,7 @@
 #!/bin/bash
 
 show_help() {
-  echo "Usage: eks-allow [options]"
+  echo "Usage: eks-allowip [options]"
   echo ""
   echo "Options:"
   echo "  --help    Display this help message"
@@ -62,7 +62,10 @@ select aws_region in "${options[@]}"; do
   fi
 done
 
-mapfile -t all_profiles < <({ get_sso_profiles; get_credential_profiles; })
+all_profiles=()
+while IFS= read -r line; do
+  all_profiles+=("$line")
+done < <({ get_sso_profiles; get_credential_profiles; })
 
 if [ ${#all_profiles[@]} -eq 0 ]; then
   echo "No AWS profiles found in ~/.aws/config or ~/.aws/credentials. Exiting."

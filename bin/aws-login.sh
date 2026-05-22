@@ -47,7 +47,7 @@ Description:
   Authenticates to multiple AWS accounts using SAML (saml2aws) and updates
   kubeconfig for all EKS clusters in the configured regions.
 
-  After login, optionally runs eks-allow to whitelist your IP on production clusters.
+  After login, optionally runs eks-allowip to whitelist your IP on production clusters.
 
 Example:
   aws-login config   # first-time setup
@@ -172,7 +172,7 @@ echo "############################################################"
 read -r -p "Do you want to whitelist your IP on EKS clusters? (yes/no): " proceed
 
 if [ "$proceed" == "yes" ]; then
-    eks-allow
+    eks-allowip
 else
     echo "Whitelisting skipped."
 fi
