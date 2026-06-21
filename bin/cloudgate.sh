@@ -39,12 +39,27 @@ cloudgate available commands:
 EOF
 }
 
+check_dep() {
+    local cmd="$1"
+    local hint="$2"
+    if ! command -v "$cmd" > /dev/null 2>&1; then
+        echo "Error: '$cmd' is not installed or not in PATH."
+        echo "  $hint"
+        exit 1
+    fi
+}
+
 case "$1" in
     saml)
+        check_dep aws    "Install AWS CLI v2: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html"
+        check_dep saml2aws "Install saml2aws: https://github.com/Versent/saml2aws#installation"
         shift
         aws-login "$@"
         ;;
     eks-allowip)
+        check_dep aws  "Install AWS CLI v2: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html"
+        check_dep jq   "Install jq: https://stedolan.github.io/jq/download/"
+        check_dep dig  "Install bind-tools (Linux) or use macOS which includes dig by default."
         shift
         eks-allowip "$@"
         ;;
