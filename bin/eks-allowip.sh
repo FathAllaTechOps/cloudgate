@@ -191,7 +191,7 @@ for index in "${cluster_indices[@]}"; do
 
   if [ "$newCount" -le "$MAX_CIDRS" ]; then
     # Under the limit — append personal IP to existing list
-    updatedCidrs=$(printf '%s\n' $currentCidrs "$personalCidr" | sort -u | tr '\n' ',' | sed 's/,$//')
+    updatedCidrs=$(printf '%s\n' "$currentCidrs" "$personalCidr" | grep -v '^$' | sort -u | tr '\n' ',' | sed 's/,$//')
     echo "'$cluster_name': appending $personalCidr ($newCount/$MAX_CIDRS CIDRs)"
   else
     # At the limit — reset to fixed IPs + personal IP
