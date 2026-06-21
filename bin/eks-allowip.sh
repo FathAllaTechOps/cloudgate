@@ -1,17 +1,40 @@
 #!/bin/bash
 
+VERSION="v1.2.0"
+
 show_help() {
   echo "Usage: eks-allowip [options]"
   echo ""
   echo "Options:"
-  echo "  --help    Display this help message"
+  echo "  --help             Display this help message"
+  echo "  --version          Display version information"
+  echo "  --show-commands    Show available commands"
   echo ""
   echo "Whitelists your current external IP on EKS cluster publicAccessCidrs."
   echo "Supports AWS SSO, 'aws login', and static credential profiles."
 }
 
+show_commands() {
+  echo "eks-allowip available commands:"
+  echo ""
+  echo "  eks-allowip                  Run the IP whitelisting wizard"
+  echo "  eks-allowip --help           Display help message"
+  echo "  eks-allowip --version        Display version information"
+  echo "  eks-allowip --show-commands  Show this command list"
+}
+
 if [[ "$1" == "--help" ]]; then
   show_help
+  exit 0
+fi
+
+if [[ "$1" == "--version" ]]; then
+  echo "eks-allowip $VERSION"
+  exit 0
+fi
+
+if [[ "$1" == "--show-commands" ]]; then
+  show_commands
   exit 0
 fi
 

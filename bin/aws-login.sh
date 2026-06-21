@@ -39,9 +39,10 @@ display_help() {
 Usage: aws-login [OPTION]
 
 Options:
-  config             Configure the AWS profiles to use for SAML authentication.
-  --help             Display this help message and exit.
-  --version          Display version information and exit.
+  config                Configure the AWS profiles to use for SAML authentication.
+  --help                Display this help message and exit.
+  --version             Display version information and exit.
+  --show-commands       Show available commands and exit.
 
 Description:
   Authenticates to multiple AWS accounts using SAML (saml2aws) and updates
@@ -58,6 +59,19 @@ EOF
 
 display_version() {
     echo "aws-login $VERSION"
+}
+
+display_commands() {
+    cat <<EOF
+aws-login available commands:
+
+  aws-login                   Run the SAML login wizard for all configured profiles
+  aws-login config            Configure AWS profiles
+  aws-login --help            Display help message
+  aws-login --version         Display version information
+  aws-login --show-commands   Show this command list
+
+EOF
 }
 
 read_password() {
@@ -80,6 +94,11 @@ fi
 
 if [ "$1" == "--version" ]; then
     display_version
+    exit 0
+fi
+
+if [ "$1" == "--show-commands" ]; then
+    display_commands
     exit 0
 fi
 
