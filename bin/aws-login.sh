@@ -65,17 +65,15 @@ display_commands() {
     cat <<EOF
 Available commands:
 
+  cloudgate saml                  AWS SAML login (saml2aws)         [recommended]
+  cloudgate eks-allowip           Whitelist your IP on EKS clusters [recommended]
+  cloudgate --show-commands       Show all cloudgate commands
+
   aws-login                       Login via SAML (saml2aws)
   aws-login config                Configure AWS profiles for SAML
   aws-login --help                Display help message
   aws-login --version             Display version information
   aws-login --show-commands       Show this command list
-
-  aws-sso-login                   Login via browser-based AWS SSO (aws login)
-  aws-sso-login config            Configure Microsoft SSO URL and AWS profiles
-  aws-sso-login --help            Display help message
-  aws-sso-login --version         Display version information
-  aws-sso-login --show-commands   Show this command list
 
   eks-allowip                     Whitelist your IP on EKS cluster publicAccessCidrs
   eks-allowip --help              Display help message

@@ -41,6 +41,7 @@ jobs:
           files: |
             bin/aws-login.sh
             bin/eks-allowip.sh
+            bin/cloudgate.sh
 
       - name: Calculate SHA256
         id: sha256
