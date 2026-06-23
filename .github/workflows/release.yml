@@ -63,12 +63,12 @@ jobs:
           git clone "https://x-access-token:${GH_TOKEN}@github.com/FathAllaTechOps/homebrew-aws-eks-login.git"
           cd homebrew-aws-eks-login
 
-          sed -i "s|url \".*\"|url \"https://github.com/FathAllaTechOps/aws-eks-login/archive/${VERSION}.tar.gz\"|" Formula/aws-eks-login.rb
-          sed -i "s|sha256 \".*\"|sha256 \"${SHA}\"|" Formula/aws-eks-login.rb
-          sed -i "s|version \".*\"|version \"${VERSION}\"|" Formula/aws-eks-login.rb
+          sed -i "s|url \".*\"|url \"https://github.com/FathAllaTechOps/aws-eks-login/archive/${VERSION}.tar.gz\"|" Formula/cloudgate.rb
+          sed -i "s|sha256 \".*\"|sha256 \"${SHA}\"|" Formula/cloudgate.rb
+          sed -i "s|version \".*\"|version \"${VERSION}\"|" Formula/cloudgate.rb
 
           git config user.email "action@github.com"
           git config user.name "GitHub Actions"
-          git add Formula/aws-eks-login.rb
-          git commit -m "bump aws-eks-login to ${VERSION}"
+          git add Formula/cloudgate.rb
+          git commit -m "bump cloudgate to ${VERSION}"
           git push

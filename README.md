@@ -51,7 +51,7 @@ chmod +x /usr/local/bin/saml2aws
 
 ```bash
 brew tap FathAllaTechOps/aws-eks-login
-brew install aws-eks-login
+brew install cloudgate
 ```
 
 ### Linux — manual install
@@ -73,7 +73,7 @@ sudo chmod +x /usr/local/bin/cloudgate /usr/local/bin/aws-login /usr/local/bin/e
 ### macOS — via Homebrew
 
 ```bash
-brew update && brew upgrade aws-eks-login
+brew update && brew upgrade cloudgate
 ```
 
 ### Linux — manual upgrade
