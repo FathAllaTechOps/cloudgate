@@ -2,7 +2,7 @@
 
 CONFIG_DIR="$HOME/.cloudgate"
 CONFIG_FILE="$CONFIG_DIR/profiles.config"
-VERSION="v1.0.0"
+VERSION="v1.3.0"
 
 load_profiles() {
     if [ -f "$CONFIG_FILE" ]; then
@@ -36,49 +36,43 @@ config_profiles() {
 
 display_help() {
     cat <<EOF
-Usage: aws-login [OPTION]
+Usage: cloudgate saml [OPTION]
 
 Options:
-  config                Configure the AWS profiles to use for SAML authentication.
-  --help                Display this help message and exit.
-  --version             Display version information and exit.
-  --show-commands       Show available commands and exit.
+  config              Configure the AWS profiles for SAML authentication.
+  --help              Display this help message and exit.
+  --version           Display version information and exit.
+  --show-commands     Show available commands and exit.
 
 Description:
   Authenticates to multiple AWS accounts using SAML (saml2aws) and updates
-  kubeconfig for all EKS clusters in the configured regions.
+  kubeconfig for all EKS clusters in eu-west-1 and eu-central-1.
 
-  After login, optionally runs eks-allowip to whitelist your IP on production clusters.
+  After login, optionally runs 'cloudgate eks-allowip' to whitelist your IP.
 
 Example:
-  aws-login config   # first-time setup
-  aws-login          # authenticate and update kubeconfigs
+  cloudgate saml config   # first-time setup
+  cloudgate saml          # authenticate and update kubeconfigs
 
 EOF
 }
 
 display_version() {
-    echo "aws-login $VERSION"
+    echo "cloudgate saml $VERSION"
 }
 
 display_commands() {
     cat <<EOF
-Available commands:
+cloudgate available commands:
 
-  cloudgate saml                  AWS SAML login (saml2aws)         [recommended]
-  cloudgate eks-allowip           Whitelist your IP on EKS clusters [recommended]
+  cloudgate saml                  AWS SAML login (saml2aws)
+  cloudgate saml config           Configure AWS profiles
+  cloudgate saml --help           Show help
+  cloudgate saml --version        Show version
+  cloudgate saml --show-commands  Show this command list
+
+  cloudgate eks-allowip           Whitelist your IP on EKS clusters
   cloudgate --show-commands       Show all cloudgate commands
-
-  aws-login                       Login via SAML (saml2aws)
-  aws-login config                Configure AWS profiles for SAML
-  aws-login --help                Display help message
-  aws-login --version             Display version information
-  aws-login --show-commands       Show this command list
-
-  eks-allowip                     Whitelist your IP on EKS cluster publicAccessCidrs
-  eks-allowip --help              Display help message
-  eks-allowip --version           Display version information
-  eks-allowip --show-commands     Show this command list
 
 EOF
 }
@@ -195,7 +189,7 @@ echo "############################################################"
 read -r -p "Do you want to whitelist your IP on EKS clusters? (yes/no): " proceed
 
 if [ "$proceed" == "yes" ]; then
-    eks-allowip
+    cloudgate eks-allowip
 else
     echo "Whitelisting skipped."
 fi

@@ -3,7 +3,7 @@
 VERSION="v1.2.0"
 
 show_help() {
-  echo "Usage: eks-allowip [options]"
+  echo "Usage: cloudgate eks-allowip [options]"
   echo ""
   echo "Options:"
   echo "  --help             Display this help message"
@@ -11,27 +11,20 @@ show_help() {
   echo "  --show-commands    Show available commands"
   echo ""
   echo "Whitelists your current external IP on EKS cluster publicAccessCidrs."
-  echo "Supports AWS SSO, 'aws login', and static credential profiles."
+  echo "Supports aws-login, SSO, and static credential profiles."
 }
 
 show_commands() {
   cat <<EOF
-Available commands:
+cloudgate available commands:
 
-  cloudgate saml                  AWS SAML login (saml2aws)         [recommended]
-  cloudgate eks-allowip           Whitelist your IP on EKS clusters [recommended]
-  cloudgate --show-commands       Show all cloudgate commands
-
-  eks-allowip                     Whitelist your IP on EKS cluster publicAccessCidrs
-  eks-allowip --help              Display help message
-  eks-allowip --version           Display version information
-  eks-allowip --show-commands     Show this command list
-
-  aws-login                       Login via SAML (saml2aws)
-  aws-login config                Configure AWS profiles for SAML
-  aws-login --help                Display help message
-  aws-login --version             Display version information
-  aws-login --show-commands       Show this command list
+  cloudgate saml                         AWS SAML login (saml2aws)
+  cloudgate saml config                  Configure AWS profiles
+  cloudgate eks-allowip                  Whitelist your IP on EKS clusters
+  cloudgate eks-allowip --help           Show help
+  cloudgate eks-allowip --version        Show version
+  cloudgate eks-allowip --show-commands  Show this command list
+  cloudgate --show-commands              Show all cloudgate commands
 
 EOF
 }
@@ -151,7 +144,7 @@ while IFS= read -r line; do
 done < <({ get_config_profiles; get_credential_profiles; })
 
 if [ ${#all_profiles[@]} -eq 0 ]; then
-  echo "No AWS profiles found. Authenticate first using 'aws-sso-login' or 'aws-login'."
+  echo "No AWS profiles found. Authenticate first using 'cloudgate saml'."
   exit 1
 fi
 

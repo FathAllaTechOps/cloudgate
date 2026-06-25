@@ -51,10 +51,10 @@ check_dep() {
 
 case "$1" in
     saml)
-        check_dep aws    "Install AWS CLI v2: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html"
+        check_dep aws      "Install AWS CLI v2: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html"
         check_dep saml2aws "Install saml2aws: https://github.com/Versent/saml2aws#installation"
         shift
-        aws-login "$@"
+        cloudgate-saml "$@"
         ;;
     eks-allowip)
         check_dep aws  "Install AWS CLI v2: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html"
