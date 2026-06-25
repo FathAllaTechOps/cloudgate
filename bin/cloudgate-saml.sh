@@ -2,7 +2,8 @@
 
 CONFIG_DIR="$HOME/.cloudgate"
 CONFIG_FILE="$CONFIG_DIR/profiles.config"
-VERSION="v1.3.0"
+CLOUDGATE_CONFIG="$CONFIG_DIR/config"
+VERSION="v2.5.0"
 
 load_profiles() {
     if [ -f "$CONFIG_FILE" ]; then
@@ -22,6 +23,18 @@ save_profiles() {
     echo ")" >> "$CONFIG_FILE"
 }
 
+list_profiles() {
+    load_profiles
+    if [ ${#profiles[@]} -eq 0 ]; then
+        echo "No profiles configured. Run 'cloudgate saml config' to add profiles."
+        return
+    fi
+    echo "Configured AWS profiles:"
+    for profile in "${profiles[@]}"; do
+        echo "  - $profile"
+    done
+}
+
 config_profiles() {
     echo "Enter the AWS profiles (one per line). Enter an empty line to finish:"
     profiles=()
@@ -34,12 +47,32 @@ config_profiles() {
     echo "Profiles saved to $CONFIG_FILE"
 }
 
+load_email() {
+    [ -n "$SAML_EMAIL" ] && return
+    if [ -f "$CLOUDGATE_CONFIG" ]; then
+        local saml_email=""
+        # shellcheck source=/dev/null
+        source "$CLOUDGATE_CONFIG"
+        [ -n "$saml_email" ] && SAML_EMAIL="$saml_email"
+    fi
+}
+
+save_email() {
+    mkdir -p "$CONFIG_DIR"
+    if [ -f "$CLOUDGATE_CONFIG" ] && grep -q '^saml_email=' "$CLOUDGATE_CONFIG"; then
+        sed -i '' "s|^saml_email=.*|saml_email=\"$1\"|" "$CLOUDGATE_CONFIG"
+    else
+        echo "saml_email=\"$1\"" >> "$CLOUDGATE_CONFIG"
+    fi
+}
+
 display_help() {
     cat <<EOF
 Usage: cloudgate saml [OPTION]
 
 Options:
   config                Configure the AWS profiles for SAML authentication.
+  config --list         List configured AWS profiles.
   --help                Display this help message and exit.
   --version             Display version information and exit.
   --show-commands       Show available commands and exit.
@@ -147,7 +180,11 @@ if [ "$1" == "--forget-password" ]; then
 fi
 
 if [ "$1" == "config" ]; then
-    config_profiles
+    if [ "$2" == "--list" ]; then
+        list_profiles
+    else
+        config_profiles
+    fi
     exit 0
 fi
 
@@ -167,9 +204,15 @@ if [ ${#profiles[@]} -eq 0 ]; then
     exit 1
 fi
 
+load_email
 if [ -z "$SAML_EMAIL" ]; then
     read -r -p "Enter the email: " SAML_EMAIL
     export SAML_EMAIL
+    read -r -p "Save email for next time? (yes/no): " save_em
+    if [ "$save_em" == "yes" ]; then
+        save_email "$SAML_EMAIL"
+        echo -e "${GREEN}✓ Email saved to ~/.cloudgate/config${RESET}"
+    fi
 else
     echo -e "${DIM}Using email: $SAML_EMAIL${RESET}"
 fi

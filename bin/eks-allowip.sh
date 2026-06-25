@@ -1,6 +1,15 @@
 #!/bin/bash
 
-VERSION="v1.2.0"
+VERSION="v2.5.0"
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+DIM='\033[2m'
+RESET='\033[0m'
 
 show_help() {
   echo "Usage: cloudgate eks-allowip [options]"
@@ -11,7 +20,7 @@ show_help() {
   echo "  --show-commands    Show available commands"
   echo ""
   echo "Whitelists your current external IP on EKS cluster publicAccessCidrs."
-  echo "Supports aws-login, SSO, and static credential profiles."
+  echo "Supports SAML and SSO credential profiles."
 }
 
 show_commands() {
@@ -24,6 +33,7 @@ cloudgate available commands:
   cloudgate eks-allowip --help           Show help
   cloudgate eks-allowip --version        Show version
   cloudgate eks-allowip --show-commands  Show this command list
+  cloudgate status                       Show session status for all profiles
   cloudgate --show-commands              Show all cloudgate commands
 
 EOF
@@ -35,7 +45,7 @@ if [[ "$1" == "--help" ]]; then
 fi
 
 if [[ "$1" == "--version" ]]; then
-  echo "eks-allowip $VERSION"
+  echo "cloudgate eks-allowip $VERSION"
   exit 0
 fi
 
@@ -83,7 +93,6 @@ fixed_cidrs=(
   "102.221.68.0/24"
 )
 
-# Profiles from 'aws login' (login_session) and 'aws sso login' (sso_start_url)
 get_config_profiles() {
   if [ ! -f ~/.aws/config ]; then return; fi
   grep '^\[profile ' ~/.aws/config | sed 's/^\[profile //;s/\]$//' | while read -r profile; do
@@ -107,16 +116,18 @@ ensure_session() {
   local profile_type=$2
   if ! aws sts get-caller-identity --profile "$profile" > /dev/null 2>&1; then
     if [[ "$profile_type" == "sso" ]]; then
-      echo "SSO session expired for '$profile'. Launching browser login..."
+      echo -e "${YELLOW}⚠ SSO session expired for '$profile'. Launching browser login...${RESET}"
       aws sso login --profile "$profile"
     else
-      echo "Error: credentials expired for profile '$profile'. Run 'cloudgate saml' to re-authenticate."
+      echo -e "${RED}✗ Credentials expired for profile '$profile'. Run 'cloudgate saml' to re-authenticate.${RESET}"
       exit 1
     fi
   fi
 }
 
-echo "Choose the AWS region where the cluster exists:"
+echo ""
+echo -e "${BOLD}Choose the AWS region:${RESET}"
+PS3=$'\n'"Region #? "
 options=("eu-west-1" "eu-central-1" "us-east-2" "us-east-1")
 select aws_region in "${options[@]}"; do
   for option in "${options[@]}"; do
@@ -128,9 +139,10 @@ select aws_region in "${options[@]}"; do
   if [ "$valid" ]; then
     break
   else
-    echo "Invalid selection. Please choose a valid AWS region."
+    echo -e "${RED}Invalid selection. Please choose a valid AWS region.${RESET}"
   fi
 done
+echo -e "${DIM}Selected region: ${CYAN}$aws_region${RESET}"
 
 all_profiles=()
 while IFS= read -r line; do
@@ -138,18 +150,21 @@ while IFS= read -r line; do
 done < <({ get_config_profiles; get_credential_profiles; })
 
 if [ ${#all_profiles[@]} -eq 0 ]; then
-  echo "No AWS profiles found. Authenticate first using 'cloudgate saml'."
+  echo -e "${RED}✗ No AWS profiles found. Authenticate first using 'cloudgate saml'.${RESET}"
   exit 1
 fi
 
-echo "Available AWS profiles:"
+echo ""
+echo -e "${BOLD}Available AWS profiles:${RESET}"
+PS3=$'\n'"Profile #? "
 select entry in "${all_profiles[@]}"; do
   if [ -n "$entry" ]; then
     break
   else
-    echo "Invalid selection. Please choose a valid profile."
+    echo -e "${RED}Invalid selection. Please choose a valid profile.${RESET}"
   fi
 done
+echo -e "${DIM}Selected profile: ${CYAN}$entry${RESET}"
 
 aws_profile="${entry% \[*\]}"
 if [[ "$entry" == *"[sso]"* ]]; then
@@ -160,32 +175,36 @@ fi
 
 ensure_session "$aws_profile" "$profile_type"
 
+echo ""
+echo -e "${DIM}Fetching clusters in ${CYAN}$aws_region${DIM}...${RESET}"
 clusters=$(aws eks list-clusters --region "$aws_region" --profile "$aws_profile" | jq -r '.clusters[]')
 
 if [ -z "$clusters" ]; then
-  echo "No EKS clusters found in region '$aws_region'. Exiting."
+  echo -e "${RED}✗ No EKS clusters found in region '$aws_region'.${RESET}"
   exit 1
 fi
 
-echo "Available EKS clusters in region '$aws_region':"
+echo ""
+echo -e "${BOLD}Available EKS clusters in ${CYAN}$aws_region${RESET}${BOLD}:${RESET}"
 i=1
 for cluster in $clusters; do
-  echo "$i) $cluster"
+  echo -e "  ${CYAN}$i)${RESET} ${BOLD}$cluster${RESET}"
   ((i++))
 done
 
-read -r -p "Enter the numbers of the clusters you want to update, separated by commas (e.g., 1,2): " selected_clusters
+read -r -p "$(echo -e "\nEnter cluster numbers (e.g., 1,2): ")" selected_clusters
 
-read -r -p "Are you sure you want to whitelist your IP on the selected clusters in '$aws_region'? (y/n): " confirm
+read -r -p "$(echo -e "\n${YELLOW}Whitelist your IP on selected clusters in '${aws_region}'? (y/n):${RESET} ")" confirm
 if [ "$confirm" != "y" ]; then
-  echo "Operation canceled. Exiting."
+  echo -e "${DIM}Operation canceled.${RESET}"
   exit 1
 fi
 
 # Detect personal IP
+echo ""
 externalIp=$(dig -4 TXT +short o-o.myaddr.l.google.com @ns1.google.com | tr -d '"')
 personalCidr="$externalIp/32"
-echo "Your current IP: $personalCidr"
+echo -e "🌐 ${BOLD}Your current IP:${RESET} ${CYAN}$personalCidr${RESET}"
 
 MAX_CIDRS=40
 
@@ -193,7 +212,7 @@ IFS=',' read -ra cluster_indices <<< "$selected_clusters"
 for index in "${cluster_indices[@]}"; do
   cluster_name=$(echo "$clusters" | sed -n "${index}p")
   if [ -z "$cluster_name" ]; then
-    echo "Invalid cluster selection: $index. Skipping."
+    echo -e "${RED}✗ Invalid cluster selection: $index. Skipping.${RESET}"
     continue
   fi
 
@@ -203,7 +222,7 @@ for index in "${cluster_indices[@]}"; do
 
   # Check if personal IP is already whitelisted
   if echo "$currentCidrs" | grep -qx "$personalCidr"; then
-    echo "'$cluster_name': $personalCidr already whitelisted. Skipping."
+    echo -e "  ${DIM}$cluster_name: $personalCidr already whitelisted. Skipping.${RESET}"
     continue
   fi
 
@@ -211,12 +230,10 @@ for index in "${cluster_indices[@]}"; do
   newCount=$((currentCount + 1))
 
   if [ "$newCount" -le "$MAX_CIDRS" ]; then
-    # Under the limit — append personal IP to existing list
     updatedCidrs=$(printf '%s\n' "$currentCidrs" "$personalCidr" | grep -v '^$' | sort -u | tr '\n' ',' | sed 's/,$//')
-    echo "'$cluster_name': appending $personalCidr ($newCount/$MAX_CIDRS CIDRs)"
+    echo -e "  ${CYAN}↑${RESET} ${BOLD}$cluster_name${RESET}${DIM}: appending $personalCidr ($newCount/$MAX_CIDRS CIDRs)${RESET}"
   else
-    # At the limit — reset to fixed IPs + personal IP
-    echo "'$cluster_name': limit reached ($currentCount/$MAX_CIDRS). Resetting to fixed IPs + $personalCidr."
+    echo -e "  ${YELLOW}⚠${RESET} ${BOLD}$cluster_name${RESET}${DIM}: limit reached ($currentCount/$MAX_CIDRS). Resetting to fixed IPs + $personalCidr.${RESET}"
     reset_cidrs=("${fixed_cidrs[@]}" "$personalCidr")
     updatedCidrs=$(printf '%s\n' "${reset_cidrs[@]}" | sort -u | tr '\n' ',' | sed 's/,$//')
   fi
@@ -224,7 +241,8 @@ for index in "${cluster_indices[@]}"; do
   aws eks update-cluster-config --name "$cluster_name" --region "$aws_region" \
     --resources-vpc-config publicAccessCidrs="$updatedCidrs" --profile "$aws_profile" > /dev/null 2>&1
 
-  echo "Updated '$cluster_name' in '$aws_region'."
+  echo -e "  ${GREEN}✓${RESET} ${BOLD}$cluster_name${RESET} updated in ${CYAN}$aws_region${RESET}"
 done
 
-echo "Operation completed."
+echo ""
+echo -e "${GREEN}✓ Operation completed.${RESET}"

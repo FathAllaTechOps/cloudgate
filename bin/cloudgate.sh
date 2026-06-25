@@ -1,6 +1,14 @@
 #!/bin/bash
 
-VERSION="v1.3.0"
+VERSION="v2.5.0"
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BOLD='\033[1m'
+DIM='\033[2m'
+RESET='\033[0m'
 
 show_help() {
     cat <<EOF
@@ -9,6 +17,7 @@ Usage: cloudgate <command> [options]
 Commands:
   saml          Login to AWS via SAML (saml2aws)
   eks-allowip   Whitelist your current IP on EKS cluster publicAccessCidrs
+  status        Show session status for all configured profiles
 
 Options:
   --help             Display this help message
@@ -23,18 +32,20 @@ show_commands() {
     cat <<EOF
 cloudgate available commands:
 
-  cloudgate saml                  AWS SAML login (saml2aws)
-  cloudgate saml config           Configure AWS profiles for SAML
-  cloudgate saml --help           Show saml command help
-  cloudgate saml --version        Show saml version
+  cloudgate saml                      AWS SAML login (saml2aws)
+  cloudgate saml config               Configure AWS profiles
+  cloudgate saml config --list        List configured profiles
+  cloudgate saml --forget-password    Remove saved password from keychain
+  cloudgate saml --help               Show saml help
 
-  cloudgate eks-allowip           Whitelist your IP on EKS clusters
-  cloudgate eks-allowip --help    Show eks-allowip command help
-  cloudgate eks-allowip --version Show eks-allowip version
+  cloudgate eks-allowip               Whitelist your IP on EKS clusters
+  cloudgate eks-allowip --help        Show eks-allowip help
 
-  cloudgate --help                Display this help message
-  cloudgate --version             Display version information
-  cloudgate --show-commands       Show this command list
+  cloudgate status                    Show session status for all profiles
+
+  cloudgate --help                    Display this help message
+  cloudgate --version                 Display version information
+  cloudgate --show-commands           Show this command list
 
 EOF
 }
@@ -43,10 +54,44 @@ check_dep() {
     local cmd="$1"
     local hint="$2"
     if ! command -v "$cmd" > /dev/null 2>&1; then
-        echo "Error: '$cmd' is not installed or not in PATH."
-        echo "  $hint"
+        echo -e "${RED}Error: '$cmd' is not installed or not in PATH.${RESET}"
+        echo -e "  $hint"
         exit 1
     fi
+}
+
+cmd_status() {
+    local CONFIG_FILE="$HOME/.cloudgate/profiles.config"
+    if [ ! -f "$CONFIG_FILE" ]; then
+        echo -e "${YELLOW}No profiles configured. Run 'cloudgate saml config' first.${RESET}"
+        exit 0
+    fi
+
+    local profiles=()
+    # shellcheck source=/dev/null
+    source "$CONFIG_FILE"
+
+    if [ ${#profiles[@]} -eq 0 ]; then
+        echo -e "${YELLOW}No profiles configured. Run 'cloudgate saml config' first.${RESET}"
+        exit 0
+    fi
+
+    echo ""
+    echo -e "${BOLD}Session status:${RESET}"
+    echo ""
+    for profile in "${profiles[@]}"; do
+        if aws sts get-caller-identity --profile "$profile" > /dev/null 2>&1; then
+            expiry=$(aws configure get aws_credential_expiration --profile "$profile" 2>/dev/null)
+            if [ -n "$expiry" ]; then
+                echo -e "  ${GREEN}✓${RESET} ${BOLD}$profile${RESET} ${DIM}(expires: $expiry)${RESET}"
+            else
+                echo -e "  ${GREEN}✓${RESET} ${BOLD}$profile${RESET} ${DIM}(valid)${RESET}"
+            fi
+        else
+            echo -e "  ${RED}✗${RESET} ${BOLD}$profile${RESET} ${DIM}(expired — run 'cloudgate saml' to re-authenticate)${RESET}"
+        fi
+    done
+    echo ""
 }
 
 case "$1" in
@@ -63,6 +108,10 @@ case "$1" in
         shift
         eks-allowip "$@"
         ;;
+    status)
+        check_dep aws "Install AWS CLI v2: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html"
+        cmd_status
+        ;;
     --version)
         echo "cloudgate $VERSION"
         ;;
@@ -76,7 +125,7 @@ case "$1" in
         show_help
         ;;
     *)
-        echo "Unknown command: $1"
+        echo -e "${RED}Unknown command: $1${RESET}"
         echo ""
         show_help
         exit 1
