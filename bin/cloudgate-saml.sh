@@ -3,7 +3,7 @@
 CONFIG_DIR="$HOME/.cloudgate"
 CONFIG_FILE="$CONFIG_DIR/profiles.config"
 CLOUDGATE_CONFIG="$CONFIG_DIR/config"
-VERSION="v2.5.0"
+VERSION="v2.6.0"
 
 load_profiles() {
     if [ -f "$CONFIG_FILE" ]; then
