@@ -107,26 +107,60 @@ Authenticates to one or more AWS accounts using SAML via `saml2aws` and updates 
 cloudgate saml config
 ```
 
+You will be prompted to enter your AWS profile names one by one. These are the profile names from your `~/.saml2aws` or `~/.aws/credentials` file.
+
+```text
+Enter the AWS profiles (one per line). Enter an empty line to finish:
+Profile: dcaas
+Profile: maac-stage
+Profile: dmmsandbox
+Profile:
+Profiles saved to ~/.cloudgate/profiles.config
+```
+
+To review what you configured:
+
+```bash
+cloudgate saml config --list
+```
+
+```text
+Configured AWS profiles:
+  - dcaas
+  - maac-stage
+  - dmmsandbox
+```
+
 **Authenticate and update kubeconfigs:**
 
 ```bash
 cloudgate saml
 ```
 
-You will be prompted for your SSO email and password. The command will:
+On first run you will be asked for your SSO email and password. Both can be saved for future runs — email is stored in `~/.cloudgate/config` and the password is stored securely in the system keychain (macOS Keychain or Linux secret-tool).
+
+The command will:
 
 1. Authenticate each selected profile via `saml2aws`
 2. Update `~/.kube/config` for all EKS clusters in `eu-west-1` and `eu-central-1`
 3. Optionally run `eks-allowip` to whitelist your IP on production clusters
 
+To clear a saved password:
+
+```bash
+cloudgate saml --forget-password
+```
+
 **All options:**
 
 ```text
-cloudgate saml                  Run the SAML login wizard
-cloudgate saml config           Configure AWS profiles
-cloudgate saml --help           Show help
-cloudgate saml --version        Show version
-cloudgate saml --show-commands  Show all available commands
+cloudgate saml                      Run the SAML login wizard
+cloudgate saml config               Configure AWS profiles
+cloudgate saml config --list        List configured profiles
+cloudgate saml --forget-password    Remove saved password from keychain
+cloudgate saml --help               Show help
+cloudgate saml --version            Show version
+cloudgate saml --show-commands      Show all available commands
 ```
 
 ---
