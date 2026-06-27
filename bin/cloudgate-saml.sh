@@ -254,7 +254,7 @@ login_with_profile() {
     sed -i '' '/aws_profile/d' ~/.saml2aws
     echo "aws_profile             = $profile" >> ~/.saml2aws
 
-    if saml2aws login --force --username="$SAML_EMAIL" --password="$password" --skip-prompt; then
+    if saml2aws login --force --username="$SAML_EMAIL" --password="$password" --skip-prompt --session-duration 43200; then
         echo -e "  ${GREEN}✓ Login successful for ${BOLD}$profile${RESET}"
         return 0
     else
