@@ -242,6 +242,8 @@ read -r -p "Enter the numbers of the profiles you want to use, separated by comm
 
 IFS=',' read -ra profile_indices <<< "$selected_profiles"
 
+failed_profiles=()
+
 login_with_profile() {
     local profile=$1
     echo ""
@@ -252,19 +254,37 @@ login_with_profile() {
     sed -i '' '/aws_profile/d' ~/.saml2aws
     echo "aws_profile             = $profile" >> ~/.saml2aws
 
-    saml2aws login --force --username="$SAML_EMAIL" --password="$password" --skip-prompt
+    if saml2aws login --force --username="$SAML_EMAIL" --password="$password" --skip-prompt; then
+        echo -e "  ${GREEN}✓ Login successful for ${BOLD}$profile${RESET}"
+        return 0
+    else
+        echo -e "  ${RED}✗ Login failed for ${BOLD}$profile${RESET}"
+        failed_profiles+=("$profile")
+        return 1
+    fi
 }
 
+succeeded_indices=()
 for index in "${profile_indices[@]}"; do
     profile=${profiles[$((index-1))]}
     if [ -n "$profile" ]; then
-        login_with_profile "$profile"
+        if login_with_profile "$profile"; then
+            succeeded_indices+=("$index")
+        fi
     else
         echo -e "${RED}✗ Invalid profile selection: $index. Skipping.${RESET}"
     fi
 done
 
 echo ""
+if [ ${#failed_profiles[@]} -gt 0 ]; then
+    echo -e "${RED}✗ Login failed for: ${failed_profiles[*]}${RESET}"
+    echo -e "${DIM}  Try 'cloudgate saml --forget-password' if your password has changed.${RESET}"
+fi
+if [ ${#succeeded_indices[@]} -eq 0 ]; then
+    echo -e "${RED}✗ No profiles logged in successfully. Exiting.${RESET}"
+    exit 1
+fi
 echo -e "${GREEN}✓ Completed login for all selected profiles.${RESET}"
 unset password
 
@@ -276,7 +296,7 @@ regions=(
 echo ""
 echo -e "${BOLD}Updating kubeconfigs...${RESET}"
 for region in "${regions[@]}"; do
-    for index in "${profile_indices[@]}"; do
+    for index in "${succeeded_indices[@]}"; do
         profile=${profiles[$((index-1))]}
         if [ -n "$profile" ]; then
             clusters=$(aws eks list-clusters --output text --profile "$profile" --region "$region" 2>/dev/null | awk '{print $2}')
