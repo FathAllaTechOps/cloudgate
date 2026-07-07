@@ -176,9 +176,10 @@ display_help() {
 Usage: cloudgate saml [OPTION]
 
 Options:
-  config                    Configure the AWS profiles for SAML authentication.
+  config                    Show configured profiles and customization options.
   config --list             List configured profiles and their roles.
   config --set-role <p> <r> Update the role for a specific profile.
+  config --reset            Re-enter all profiles manually.
   --help                    Display this help message and exit.
   --version             Display version information and exit.
   --show-commands       Show available commands and exit.
@@ -305,8 +306,15 @@ if [ "$1" == "config" ]; then
         account_id=$(echo "$current_entry" | cut -d: -f1)
         sed -i '' "s|^${local_profile}=.*|${local_profile}=${account_id}:${local_role}|" "$ROLES_FILE"
         echo "Role for '$local_profile' updated to '$local_role'"
-    else
+    elif [ "$2" == "--reset" ]; then
         config_profiles
+    else
+        init_defaults
+        list_profiles
+        echo ""
+        echo "To customize:"
+        echo "  cloudgate saml config --set-role <profile> <role>   # change your role"
+        echo "  cloudgate saml config --reset                        # re-enter all profiles manually"
     fi
     exit 0
 fi
