@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION="v2.9.0"
+VERSION="v3.1.0"
 
 # Colors — Vodafone brand palette
 VF_RED='\033[38;2;230;0;0m'    # Vodafone Red #E60000
@@ -217,8 +217,12 @@ for index in "${cluster_indices[@]}"; do
   fi
 
   # Get current CIDRs on the cluster
-  currentCidrs=$(aws eks describe-cluster --name "$cluster_name" --region "$aws_region" --profile "$aws_profile" \
-    | jq -r '.cluster.resourcesVpcConfig.publicAccessCidrs[]')
+  describe_output=$(aws eks describe-cluster --name "$cluster_name" --region "$aws_region" --profile "$aws_profile" 2>&1)
+  if echo "$describe_output" | grep -qi "AccessDenied\|UnauthorizedOperation\|not authorized"; then
+    echo -e "  ${RED}✗ ${BOLD}$cluster_name${RESET}${RED}: permission denied (eks:DescribeCluster). Ask your admin to add EKS permissions to your role.${RESET}"
+    continue
+  fi
+  currentCidrs=$(echo "$describe_output" | jq -r '.cluster.resourcesVpcConfig.publicAccessCidrs[]' 2>/dev/null)
 
   # Check if personal IP is already whitelisted
   if echo "$currentCidrs" | grep -qx "$personalCidr"; then
@@ -238,8 +242,12 @@ for index in "${cluster_indices[@]}"; do
     updatedCidrs=$(printf '%s\n' "${reset_cidrs[@]}" | sort -u | tr '\n' ',' | sed 's/,$//')
   fi
 
-  aws eks update-cluster-config --name "$cluster_name" --region "$aws_region" \
-    --resources-vpc-config publicAccessCidrs="$updatedCidrs" --profile "$aws_profile" > /dev/null 2>&1
+  update_output=$(aws eks update-cluster-config --name "$cluster_name" --region "$aws_region" \
+    --resources-vpc-config publicAccessCidrs="$updatedCidrs" --profile "$aws_profile" 2>&1)
+  if echo "$update_output" | grep -qi "AccessDenied\|UnauthorizedOperation\|not authorized"; then
+    echo -e "  ${RED}✗ ${BOLD}$cluster_name${RESET}${RED}: permission denied (eks:UpdateClusterConfig). Ask your admin to add EKS permissions to your role.${RESET}"
+    continue
+  fi
 
   echo -e "  ${GREEN}✓${RESET} ${BOLD}$cluster_name${RESET} updated in ${VF_RED}$aws_region${RESET}"
 done
