@@ -404,6 +404,17 @@ login_with_profile() {
     saml_output=$(cat "$tmpfile")
     rm -f "$tmpfile"
 
+    # Retry with 1h if the role's MaxSessionDuration is lower than 12h
+    if [ "$exit_code" -ne 0 ] && echo "$saml_output" | grep -qi "DurationSeconds\|MaxSessionDuration"; then
+        echo -e "  ${DIM}Role max session is under 12h — retrying with 1h...${RESET}"
+        local tmpfile2
+        tmpfile2=$(mktemp)
+        saml2aws login --force --username="$SAML_EMAIL" --password="$password" --skip-prompt --session-duration 3600 2>&1 | tee "$tmpfile2"
+        exit_code="${PIPESTATUS[0]}"
+        saml_output=$(cat "$tmpfile2")
+        rm -f "$tmpfile2"
+    fi
+
     if [ "$exit_code" -eq 0 ]; then
         echo -e "  ${GREEN}✓ Login successful for ${BOLD}$profile${RESET}"
         return 0
@@ -411,7 +422,7 @@ login_with_profile() {
         if echo "$saml_output" | grep -qi "MFA BeginAuth\|throttl\|too many\|spam\|AADSTS90025"; then
             echo -e "  ${RED}✗ Azure AD MFA throttled for ${BOLD}$profile${RESET}"
             echo -e "  ${DIM}  Wait a few minutes before retrying — Azure AD is blocking rapid MFA requests.${RESET}"
-        elif echo "$saml_output" | grep -qi "password\|credential\|invalid\|unauthorized"; then
+        elif echo "$saml_output" | grep -qi "Empty password\|incorrect password\|authentication failed\|AADSTS50126"; then
             echo -e "  ${RED}✗ Login failed for ${BOLD}$profile${RESET} ${DIM}(wrong password — run 'cloudgate saml --forget-password')${RESET}"
         else
             echo -e "  ${RED}✗ Login failed for ${BOLD}$profile${RESET}"
